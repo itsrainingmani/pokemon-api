@@ -1,9 +1,12 @@
 use ksuid::Ksuid;
+use std::fmt;
 
 // Since Planetscale, doesnt support arrays of values we comment out the fields, we comment out the abilities and typing fields.
 // We will model those arrays as rows in a different table
+
+#[derive(Debug)]
 pub struct PokemonTableRow {
-    pub id: Ksuid,
+    pub id: PokemonId,
     pub name: String,
     pub slug: String,
     pub pokedex_id: u16,
@@ -48,4 +51,31 @@ pub struct PokemonTableRow {
     pub dark_attack_effectiveness: f32,
     pub steel_attack_effectiveness: f32,
     pub fairy_attack_effectiveness: f32,
+}
+
+// error[E0117]: only traits defined in the current crate can be implemented for arbitrary types
+// soln: Define and implement a trait or new type instead
+// impl fmt::Debug for Ksuid {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         f.debug_struct("Ksuid")
+//             .field("id", &self.to_base62())
+//             .finish()
+//     }
+// }
+
+// Wrapper tuple struct over ksuid so we can impl Debug trait on this owned struct
+pub struct PokemonId(Ksuid);
+
+impl PokemonId {
+    pub fn new() -> Self {
+        PokemonId(Ksuid::generate())
+    }
+}
+
+impl fmt::Debug for PokemonId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("PokemonId")
+            .field(&self.0.to_base62())
+            .finish()
+    }
 }
