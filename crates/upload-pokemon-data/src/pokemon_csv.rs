@@ -1,12 +1,14 @@
-use serde::Deserialize;
+use serde::{de, Deserialize};
 
 #[derive(Debug, Deserialize)]
 
 pub struct PokemonCsv {
     pub name: String,
     pub pokedex_id: u16,
-    pub abilities: String,
-    pub typing: String,
+    #[serde(deserialize_with = "from_comma_separated")]
+    pub abilities: Vec<String>,
+    #[serde(deserialize_with = "from_comma_separated")]
+    pub typing: Vec<String>,
     pub hp: u8,
     pub attack: u8,
     pub defense: u8,
@@ -30,7 +32,8 @@ pub struct PokemonCsv {
     pub forms_switchable: bool,
     pub base_experience: u16,
     pub capture_rate: u8,
-    pub egg_groups: String,
+    #[serde(deserialize_with = "from_comma_separated")]
+    pub egg_groups: Vec<String>,
     pub base_happiness: u8,
     pub evolves_from: Option<String>,
     pub primary_color: String,
@@ -53,4 +56,30 @@ pub struct PokemonCsv {
     pub dark_attack_effectiveness: f32,
     pub steel_attack_effectiveness: f32,
     pub fairy_attack_effectiveness: f32,
+}
+
+// usage of the de lifetime means that the input string needs to live as long as the struct we're creating from it
+fn from_capital_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    let s: &str = de::Deserialize::deserialize(deserializer)?;
+
+    match s {
+        "True" => Ok(true),
+        "False" => Ok(false),
+        _ => Err(de::Error::custom("not a boolean!")),
+    }
+}
+
+fn from_comma_separated<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    let s: &str = de::Deserialize::deserialize(deserializer)?;
+
+    Ok(s.split(", ")
+        .filter(|v| !v.is_empty())
+        .map(|v| v.to_string())
+        .collect())
 }
