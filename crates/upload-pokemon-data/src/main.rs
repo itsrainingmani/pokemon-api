@@ -1,6 +1,6 @@
 mod db;
 mod pokemon_csv;
-use color_eyre::eyre;
+use color_eyre::{eyre, eyre::WrapErr, Section};
 use std::env;
 
 use db::*;
@@ -8,7 +8,9 @@ use pokemon_csv::*;
 
 fn main() -> eyre::Result<()> {
     color_eyre::install()?; // bootstrap color eyre first so it can show errors
-    let database_url = env::var("DATABASE_URL")?;
+    let database_url = env::var("DATABASE_URL")
+        .wrap_err("Must have a DATABASE_URL set")
+        .suggestion("Run pscale connect <database> <branch> to get a connection string")?;
 
     // Since the main function's return type is the same as the error type,
     // we can use ? on the Result<Reader<File>, csv::Error> to turn into a Reader<File>
