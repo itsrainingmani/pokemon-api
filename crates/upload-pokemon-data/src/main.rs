@@ -1,12 +1,13 @@
 mod db;
 mod pokemon_csv;
+
 use color_eyre::{eyre, eyre::WrapErr, Section};
+use db::*;
+use futures::stream::FuturesUnordered;
 use indicatif::ProgressIterator;
+use pokemon_csv::*;
 use sqlx::mysql::MySqlPoolOptions;
 use std::{collections::HashMap, env};
-
-use db::*;
-use pokemon_csv::*;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -32,9 +33,15 @@ async fn main() -> eyre::Result<()> {
     //needed for the evolutions table
     let mut pokemon_map: HashMap<String, PokemonId> = HashMap::new();
 
+    let tasks = FuturesUnordered::new();
+
     for record in pokemon.clone().into_iter().progress() {
         let pokemon_row: PokemonTableRow = record.clone().into();
-        insert_pokemon(&pool, &pokemon_row).await?;
+        // insert_pokemon(&pool, &pokemon_row).await?;
+        tasks.push(tokio::spawn(insert_pokemon(
+            pool.clone(),
+            pokemon_row.clone(),
+        )));
 
         for ability in record.abilities.iter() {
             sqlx::query!(
