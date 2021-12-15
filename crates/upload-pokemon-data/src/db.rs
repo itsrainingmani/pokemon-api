@@ -10,7 +10,7 @@ use std::fmt;
 // Since Planetscale, doesnt support arrays of values we comment out the fields, we comment out the abilities and typing fields.
 // We will model those arrays as rows in a different table
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PokemonTableRow {
     pub id: PokemonId,
     pub name: String,
@@ -70,6 +70,7 @@ pub struct PokemonTableRow {
 // }
 
 // Wrapper tuple struct over ksuid so we can impl Debug trait on this owned struct
+#[derive(Clone)]
 pub struct PokemonId(Ksuid);
 
 impl PokemonId {
@@ -184,7 +185,7 @@ impl From<PokemonCsv> for PokemonTableRow {
 
 // We're gonna create an async function to insert a PokemonTableRow into planetscale
 pub async fn insert_pokemon(
-    pool: &MySqlPool,
+    pool: MySqlPool,
     PokemonTableRow {
         id,
         name,
@@ -227,7 +228,7 @@ pub async fn insert_pokemon(
         dark_attack_effectiveness,
         steel_attack_effectiveness,
         fairy_attack_effectiveness,
-    }: &PokemonTableRow,
+    }: PokemonTableRow,
 ) -> Result<sqlx::mysql::MySqlQueryResult, sqlx::Error> {
     sqlx::query!(
         r#"
@@ -318,7 +319,7 @@ pub async fn insert_pokemon(
         steel_attack_effectiveness,
         fairy_attack_effectiveness,
     )
-    .execute(pool)
+    .execute(&pool)
     .await
 }
 
