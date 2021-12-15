@@ -7,7 +7,7 @@ use futures::{stream::FuturesUnordered, StreamExt};
 use indicatif::{ProgressBar, ProgressIterator};
 use pokemon_csv::*;
 use sqlx::mysql::MySqlPoolOptions;
-use std::{collections::HashMap, env};
+use std::{collections::HashMap, env, time::Duration};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -17,7 +17,8 @@ async fn main() -> eyre::Result<()> {
         .suggestion("Run pscale connect <database> <branch> to get a connection string")?;
 
     let pool = MySqlPoolOptions::new()
-        .max_connections(5)
+        .max_connections(50) // Planetscale can handle a lot of connections
+        .connect_timeout(Duration::from_secs(60 * 5))
         .connect(&database_url)
         .await
         .suggestion("database urls must be in the form `mysql://username@host:port/database`")?;
