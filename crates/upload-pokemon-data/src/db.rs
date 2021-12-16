@@ -1,6 +1,7 @@
 use crate::pokemon_csv::PokemonCsv;
 use inflector::Inflector;
 use ksuid::Ksuid;
+use serde::{Serialize, Serializer};
 use sqlx::{
     database::{HasArguments, HasValueRef},
     encode::IsNull,
@@ -86,6 +87,16 @@ impl fmt::Debug for PokemonId {
         f.debug_tuple("PokemonId")
             .field(&self.0.to_base62())
             .finish()
+    }
+}
+
+impl Serialize for PokemonId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let id = self.0.to_base62();
+        serializer.serialize_str(&id)
     }
 }
 
