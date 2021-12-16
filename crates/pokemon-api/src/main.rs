@@ -24,31 +24,44 @@ struct PokemonHp {
     hp: u16,
 }
 
-async fn handler(_: ApiGatewayProxyRequest, _: Context) -> Result<ApiGatewayProxyResponse, Error> {
+async fn handler(
+    event: ApiGatewayProxyRequest,
+    _: Context,
+) -> Result<ApiGatewayProxyResponse, Error> {
     println!("handler");
     let database_url = env::var("DATABASE_URL")?;
 
-    let pool = MySqlPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await?;
+    let path = event.path.expect("there should always be an event path");
+    let requested_pokemon = path.split("/").last();
 
-    let result = sqlx::query_as!(
-        PokemonHp,
-        r#"SELECT name, hp from pokemon where slug = "bulbasaur""#
-    )
-    .fetch_one(&pool)
-    .await?;
+    match requested_pokemon {
+        Some("") => todo!(),
+        None => todo!(),
+        Some(pokemon_name) => {
+            let pool = MySqlPoolOptions::new()
+                .max_connections(5)
+                .connect(&database_url)
+                .await?;
 
-    let json_pokemon = serde_json::to_string(&result)?;
-    let response = ApiGatewayProxyResponse {
-        status_code: 200,
-        headers: HeaderMap::new(),
-        multi_value_headers: HeaderMap::new(),
-        body: Some(Body::Text(json_pokemon)),
-        is_base64_encoded: Some(false),
-    };
-    Ok(response)
+            let result = sqlx::query_as!(
+                PokemonHp,
+                r#"SELECT name, hp from pokemon where slug = ?"#,
+                pokemon_name
+            )
+            .fetch_one(&pool)
+            .await?;
+
+            let json_pokemon = serde_json::to_string(&result)?;
+            let response = ApiGatewayProxyResponse {
+                status_code: 200,
+                headers: HeaderMap::new(),
+                multi_value_headers: HeaderMap::new(),
+                body: Some(Body::Text(json_pokemon)),
+                is_base64_encoded: Some(false),
+            };
+            Ok(response)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -66,7 +79,7 @@ mod tests {
     async fn handler_handles() {
         let event = ApiGatewayProxyRequest {
             resource: None,
-            path: Some("/.netlify/functions/pokemon-api".to_string()),
+            path: Some("/api/pokemon/bulbasaur".to_string()),
             http_method: Method::GET,
             headers: HeaderMap::new(),
             multi_value_headers: HeaderMap::new(),
