@@ -75,11 +75,10 @@ mod tests {
 
     use super::*;
 
-    #[tokio::test]
-    async fn handler_handles() {
-        let event = ApiGatewayProxyRequest {
+    fn fake_request(path: String) -> ApiGatewayProxyRequest {
+        ApiGatewayProxyRequest {
             resource: None,
-            path: Some("/api/pokemon/bulbasaur".to_string()),
+            path: Some(path),
             http_method: Method::GET,
             headers: HeaderMap::new(),
             multi_value_headers: HeaderMap::new(),
@@ -120,7 +119,12 @@ mod tests {
             },
             body: None,
             is_base64_encoded: Some(false),
-        };
+        }
+    }
+
+    #[tokio::test]
+    async fn handler_handles() {
+        let event = fake_request("/api/pokemon/bulbasaur".to_string());
 
         assert_eq!(
             handler(event.clone(), Context::default()).await.unwrap(),
@@ -138,5 +142,13 @@ mod tests {
                 is_base64_encoded: Some(false)
             }
         )
+    }
+
+    #[tokio::test]
+    #[should_panic(expected = "not yet implemented")]
+    async fn handler_handles_empty_pokemon() {
+        let event = fake_request("/api/pokemon//".to_string());
+
+        handler(event.clone(), Context::default()).await.unwrap();
     }
 }
