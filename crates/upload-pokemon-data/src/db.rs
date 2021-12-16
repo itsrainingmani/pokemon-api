@@ -2,8 +2,10 @@ use crate::pokemon_csv::PokemonCsv;
 use inflector::Inflector;
 use ksuid::Ksuid;
 use sqlx::{
-    database::HasArguments, encode::IsNull, mysql::MySqlTypeInfo, Database, Encode, MySql,
-    MySqlPool, Type,
+    database::{HasArguments, HasValueRef},
+    encode::IsNull,
+    mysql::MySqlTypeInfo,
+    Database, Decode, Encode, MySql, MySqlPool, Type,
 };
 use std::fmt;
 
@@ -337,5 +339,15 @@ impl Type<MySql> for PokemonId {
 
     fn compatible(ty: &MySqlTypeInfo) -> bool {
         <&[u8] as Type<MySql>>::compatible(ty)
+    }
+}
+
+impl<'r> Decode<'r, MySql> for PokemonId {
+    fn decode(
+        value: <MySql as HasValueRef<'r>>::ValueRef,
+    ) -> Result<PokemonId, Box<dyn std::error::Error + 'static + Send + Sync>> {
+        let value = <&[u8] as Decode<MySql>>::decode(value)?;
+        let base62_ksuid = std::str::from_utf8(&value)?;
+        Ok(PokemonId(Ksuid::from_base62(base62_ksuid)?))
     }
 }
